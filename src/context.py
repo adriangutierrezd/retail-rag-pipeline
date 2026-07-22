@@ -40,7 +40,8 @@ def situate_context(doc: str, chunk: str) -> str:
                 "content": [
                     {
                         "type": "text",
-                        "text": DOCUMENT_CONTEXT_PROMPT.format(doc_content=doc)
+                        "text": DOCUMENT_CONTEXT_PROMPT.format(doc_content=doc),
+                        "cache_control": {"type": "ephemeral"}
                     },
                     {
                         "type": "text",
