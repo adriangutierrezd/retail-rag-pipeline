@@ -54,14 +54,15 @@ def situate_context(doc: str, chunk: str) -> str:
 
     return response.content[0].text
 
-def contextualize_chunks(doc_content: str, chunks: list[str]) -> list[str]:
+def contextualize_chunks(doc_content: str, chunks: list[str]) -> tuple[list[str], list[str]]:
     """
-    Genera el texto contextualizado (contexto + chunk original) para cada chunk
-    de un mismo documento, en orden secuencial para aprovechar el prompt caching.
+    Genera el texto contextualizado (contexto + chunk original) para cada chunk.
+    Devuelve una tupla: (textos_contextualizados, contextos_generados_solos)
     """
     contextualized = []
+    contexts_only = []
     for chunk in chunks:
         context = situate_context(doc_content, chunk)
         contextualized.append(f"{context}\n\n{chunk}")
-    return contextualized
-
+        contexts_only.append(context)
+    return contextualized, contexts_only

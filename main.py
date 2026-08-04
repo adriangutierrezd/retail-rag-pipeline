@@ -24,19 +24,34 @@ def index_documents(data_dir: str = "data") -> None:
         doc_content = load_document(path)
         chunks = load_and_chunk(path)
 
-        contextualized_chunks = contextualize_chunks(doc_content, chunks)
+        contextualized_chunks, contexts = contextualize_chunks(doc_content, chunks)
         embeddings = generate_embeddings(contextualized_chunks)
-
-        store_chunks(chunks, embeddings, doc_id)
+        store_chunks(chunks, embeddings, doc_id, contexts=contexts)
 
     print("Indexado completo")
 
 
 def ask(query: str) -> str:
-    """Pipeline completo: pregunta -> recuperación -> respuesta"""
-    chunks = retrieve(query=query, n_results=5)
-    response = generate_response(query, chunks)
+    resultados = retrieve(query)
+    chunks_texto = [texto for _id, texto in resultados]
+    response = generate_response(query, chunks_texto)
     return response
+
+def index_baseline(data_dir: str = "data") -> None:
+    """Indexa los mismos documentos SIN contextualizar, para comparar."""
+    collection = get_collection("retail_docs_baseline")
+    if collection.count() > 0:
+        print("Baseline ya indexado, saltando paso")
+        return
+
+    for path in list_documents(data_dir):
+        doc_id = os.path.splitext(os.path.basename(path))[0]
+        print(f"-> {doc_id} (baseline, sin contexto)")
+        chunks = load_and_chunk(path)
+        embeddings = generate_embeddings(chunks)  # chunks originales, sin contextualize_chunks
+        store_chunks(chunks, embeddings, doc_id, collection_name="retail_docs_baseline")
+
+    print("Indexado baseline completo")
 
 if __name__ == "__main__":
     print("\n=== Asistente de operaciones retail ===\n")

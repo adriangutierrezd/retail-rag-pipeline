@@ -1,43 +1,57 @@
 import chromadb
 import os
 
-def get_collection(collection_name: str = "retail-docs") -> chromadb.Collection:
+def get_collection(name: str = "retail_docs_baseline"):
     """
-    Crea o recupera una nueva colección de Chroma persistida en disco.
-    Si ya existe, la devuelve tal cual - los datos no se pierden entre ejecuciones.
+    Devuelve (o crea si no existe) una colección de Chroma por nombre.
+    Permite tener varias colecciones conviviendo en el mismo chroma_db/
+    (ej. retail_docs_contextual vs retail_docs_baseline) para comparar.
     """
-
     client = chromadb.PersistentClient(path="chroma_db")
-    collection = client.get_or_create_collection(
-        name=collection_name,
+    return client.get_or_create_collection(
+        name=name,
         metadata={"hnsw:space": "cosine"}
     )
 
-    return collection
 
-def store_chunks(chunks: list[str], embeddings: list[list[float]], doc_id: str) -> None:
+def store_chunks(
+    chunks: list[str],
+    embeddings: list[list[float]],
+    doc_id: str,
+    collection_name: str = "retail_docs_baseline",
+    contexts: list[str] | None = None
+) -> None:
     """
-    Guarda los chunks y sus embeddings en Chroma.
-    El ID combina doc_id (nombre del documento de origen) + posición del chunk
-    para evitar colisiones cuando se indexan varios documentos.
+    Guarda los chunks y sus embeddings en la colección indicada.
+    El ID combina doc_id + posición del chunk, para evitar colisiones
+    cuando se indexan varios documentos en la misma colección.
+    Si se pasan contexts, se guardan como metadata (para poder auditar
+    después qué contexto generó Claude para cada chunk).
     """
-
-    collection = get_collection()
+    collection = get_collection(collection_name)
+    metadatas = [{"context": c} for c in contexts] if contexts else None
     collection.add(
         ids=[f"{doc_id}_chunk_{i}" for i in range(len(chunks))],
         documents=chunks,
-        embeddings=embeddings
+        embeddings=embeddings,
+        metadatas=metadatas
     )
-    print(f"{len(chunks)} chunks generados en Chroma para {doc_id}")
+    print(f"{len(chunks)} chunks generados en '{collection_name}' para {doc_id}")
 
-def query_collection(query_embedding: list[float], n_results: int = 2) -> list[str]:
+
+def query_collection(
+    query_embedding: list[float],
+    n_results: int = 5,
+    collection_name: str = "retail_docs_baseline"
+) -> list[tuple[str, str]]:
     """
-    Dada la pregunta vectorizada, devuelve los n chunks más cercanos
+    Busca los n_results chunks más similares en la colección indicada.
+    Devuelve una lista de tuplas (id, texto) para poder identificar
+    exactamente qué chunk se recuperó, no solo su contenido.
     """
-    coll = get_collection()
-    results = coll.query(
+    collection = get_collection(collection_name)
+    results = collection.query(
         query_embeddings=[query_embedding],
         n_results=n_results
     )
-
-    return results["documents"][0]
+    return list(zip(results["ids"][0], results["documents"][0]))
