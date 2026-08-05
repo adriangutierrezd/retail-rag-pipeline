@@ -8,7 +8,7 @@ from src.generation import generate_response
 
 def index_documents(data_dir: str = "data") -> None:
     """Carga, trocea, contextualiza, vectoriza y guarda todos los documentos de data_dir en Chroma"""
-    collection = get_collection()
+    collection = get_collection("retail_docs_contextual")
 
     if collection.count() > 0:
         print("Documentos indexados, saltando paso")
@@ -26,10 +26,9 @@ def index_documents(data_dir: str = "data") -> None:
 
         contextualized_chunks, contexts = contextualize_chunks(doc_content, chunks)
         embeddings = generate_embeddings(contextualized_chunks)
-        store_chunks(chunks, embeddings, doc_id, contexts=contexts)
+        store_chunks(chunks, embeddings, doc_id, collection_name="retail_docs_contextual", contexts=contexts)
 
     print("Indexado completo")
-
 
 def ask(query: str) -> str:
     resultados = retrieve(query)
@@ -55,7 +54,7 @@ def index_baseline(data_dir: str = "data") -> None:
 
 if __name__ == "__main__":
     print("\n=== Asistente de operaciones retail ===\n")
-    index_documents("data")
+    index_baseline("data")
     while True:
         query = input("Preguta o 'salir':").strip()
         if(query.lower() == 'salir'):
