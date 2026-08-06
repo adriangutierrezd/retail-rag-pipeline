@@ -1,7 +1,7 @@
 import voyageai
 import os
 from dotenv import load_dotenv
-from src.store import query_collection
+from src.vector_store import query_collection
 
 load_dotenv()
 
@@ -11,7 +11,7 @@ client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 def retrieve(
     query: str,
     n_results: int = 5,
-    collection_name: str = "retail_docs_baseline"
+    variant: str = "retail_docs_baseline"
 ) -> list[tuple[str, str]]:
     """
     Vectoriza la pregunta y recupera los chunks más relevantes de la
@@ -23,4 +23,4 @@ def retrieve(
         input_type="query"
     )
     query_embedding = result.embeddings[0]
-    return query_collection(query_embedding, n_results, collection_name)
+    return query_collection(query_embedding, n_results, variant)

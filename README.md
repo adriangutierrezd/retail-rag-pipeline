@@ -166,7 +166,4 @@ al indexar múltiples documentos en la misma colección.
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
 - [x] Evals para medir calidad de recuperación (Pass@k + posición media)
 - [x] Soporte para múltiples documentos
-- [ ] Migración de Chroma a pgvector
-- [ ] Repetir la evaluación de contextual retrieval sobre un documento sin
-      estructura de headers clara (texto plano largo), para confirmar si
-      la hipótesis de este README se sostiene también ahí
+- [x] Migración de Chroma a pgvector
