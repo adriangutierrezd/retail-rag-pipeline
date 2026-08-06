@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: retail-rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: retail_rag
+      POSTGRES_PASSWORD: retail_rag_dev
+      POSTGRES_DB: retail_rag
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -7,6 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.111.0",
     "chromadb>=1.5.9",
+    "pgvector>=0.5.0",
+    "psycopg[binary]>=3.3.4",
     "python-dotenv>=1.2.2",
     "voyageai>=0.4.1",
 ]
