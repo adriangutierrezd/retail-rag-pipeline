@@ -1,35 +1,41 @@
-import anthropic
 import os
+from anthropic import Anthropic
+from pydantic import BaseModel
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-def generate_response(query: str, context_chunks: list[str]) -> str:
+class RetailAnswer(BaseModel):
+    has_sufficient_context: bool
+    answer: str
+    missing_info: Optional[str] = None
+
+def generate_response(query: str, chunks: list[str]) -> RetailAnswer:
     """
-    Dada una pregunta y los chunks relevantes recuperados, 
-    construye el prompt y llama a Claude para generar la respuesta
+    Genera una respuesta estructurada a partir de los chunks recuperados.
+    Devuelve un RetailAnswer, no un string: el propio código puede
+    comprobar has_sufficient_context sin tener que analizar texto libre.
     """
-
-    context = "\n\n---\n\n".join(context_chunks)
-    prompt = f"""Eres un asistente experto en operaciones retail e inventario.
-    Responde la pregunta del usuario basándote ÚNICAMENTE en el contexto proporcionado.
-    Si la respuesta no está en el contexto, dilo explícitamente — no inventes información.
-
-    CONTEXTO:
-    {context}
-
-    PREGUNTA:
-    {query}"""
-
-    message = client.messages.create(
+    context = "\n\n".join(chunks)
+    response = client.messages.parse(
         model="claude-sonnet-4-6",
         max_tokens=1024,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{
+            "role": "user",
+            "content": (
+                f"Contexto:\n{context}\n\n"
+                f"Pregunta: {query}\n\n"
+                "Responde únicamente con la información disponible en el contexto. "
+                "Si el contexto no contiene suficiente información para responder "
+                "con seguridad, indícalo explícitamente."
+            )
+        }],
+        output_format=RetailAnswer,
     )
+    return response.parsed_output
 
-    return message.content[0].text
+
 

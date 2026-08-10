@@ -33,8 +33,10 @@ def index_documents(data_dir: str = "data") -> None:
 def ask(query: str) -> str:
     resultados = retrieve(query, variant="retail_docs_baseline")
     chunks_texto = [texto for _id, texto in resultados]
-    response = generate_response(query, chunks_texto)
-    return response
+    respuesta = generate_response(query, chunks_texto)
+    if not respuesta.has_sufficient_context:
+        return f"{respuesta.answer}\n\n(Información no disponible: {respuesta.missing_info})"
+    return respuesta.answer
 
 def index_baseline(data_dir: str = "data") -> None:
     """Indexa sin contexto (variant='baseline'), en el backend activo."""
