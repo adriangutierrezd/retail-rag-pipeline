@@ -25,18 +25,19 @@ def index_documents(data_dir: str = "data") -> None:
 
         contextualized_chunks, contexts = contextualize_chunks(doc_content, chunks)
         embeddings = generate_embeddings(contextualized_chunks)
-        store_chunks(chunks, embeddings, doc_id, variant="retail_docs_contextual", contexts=contexts)
+        store_chunks(chunks, embeddings, doc_id, variant="contextual", contexts=contexts)
 
     print("Indexado completo")
 
 
 def ask(query: str) -> str:
-    resultados = retrieve(query, variant="retail_docs_baseline")
+    resultados = retrieve(query, variant="baseline")
     chunks_texto = [texto for _id, texto in resultados]
     respuesta = generate_response(query, chunks_texto)
     if not respuesta.has_sufficient_context:
         return f"{respuesta.answer}\n\n(Información no disponible: {respuesta.missing_info})"
     return respuesta.answer
+
 
 def index_baseline(data_dir: str = "data") -> None:
     """Indexa sin contexto (variant='baseline'), en el backend activo."""
@@ -45,7 +46,7 @@ def index_baseline(data_dir: str = "data") -> None:
         print(f"-> {doc_id} (baseline, sin contexto)")
         chunks = load_and_chunk(path)
         embeddings = generate_embeddings(chunks)
-        store_chunks(chunks, embeddings, doc_id, variant="retail_docs_baseline")
+        store_chunks(chunks, embeddings, doc_id, variant="baseline")
 
     print("Indexado baseline completo")
 
