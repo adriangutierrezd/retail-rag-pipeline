@@ -208,6 +208,54 @@ capa de despacho entre Chroma y Postgres + pgvector, seleccionable vía
 `VECTOR_BACKEND`, sin acoplar el resto del pipeline (loader, contexto,
 embeddings, generación) a un backend concreto.
 
+## Agente de conciliación de devoluciones
+
+Primera pieza de la Fase 2 del roadmap (agentes y producción): un agente
+con tool use real que resuelve solicitudes de devolución de forma
+autónoma, en vez de solo responder preguntas sobre política.
+
+A diferencia del resto del pipeline (una única llamada a Claude por
+pregunta), el agente ejecuta un **bucle**: Claude decide qué herramienta
+necesita, el código la ejecuta de verdad, el resultado vuelve a Claude,
+y así hasta que Claude tiene información suficiente para emitir una
+decisión final.
+
+**Herramientas disponibles:**
+
+- `consultar_politica_devoluciones` — reutiliza el RAG existente
+  (`retrieve` + `generate_response`) como herramienta del agente, en vez
+  de construir un sistema de consulta aparte.
+- `enviar_decision` — no ejecuta ninguna acción externa; es el mecanismo
+  por el que el agente entrega su decisión final en formato estructurado
+  y validado (`DecisionDevolucion`, Pydantic), tratando la respuesta
+  final como una herramienta más dentro del mismo bucle de tool use.
+
+```python
+class DecisionDevolucion(BaseModel):
+    decision: Literal["aprobar", "rechazar", "requiere_autorizacion_humana"]
+    razonamiento: str
+    politica_aplicada: str
+    requiere_revision: bool
+```
+
+**Guardrail de negocio, en dos capas:**
+
+1. El agente decide de forma autónoma, consultando la política real, y
+   ya respeta correctamente el umbral de 150€ definido en
+   `politica-devoluciones-garantias.md` por su propio razonamiento.
+2. Además, el importe se pasa como parámetro explícito de la función
+   (no se extrae de texto libre) y `aplicar_guardrail_importe()` verifica
+   en código, de forma independiente al razonamiento del agente, que
+   ninguna devolución superior a 150€ pueda quedar aprobada
+   automáticamente — corrigiendo la decisión solo si el agente se
+   equivocara, sin tocar decisiones ya correctas de rechazo o revisión.
+
+Esta doble capa refleja una decisión de diseño real de LLMOps: confiar en
+el razonamiento del modelo para casos generales, pero no depender
+exclusivamente de él en decisiones con impacto económico directo — un
+guardrail barato en código elimina un riesgo completo, sin restar
+autonomía al agente en el resto de casos.
+
 ## Próximos pasos
 
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
@@ -215,6 +263,9 @@ embeddings, generación) a un backend concreto.
 - [x] Soporte para múltiples documentos
 - [x] Migración de Chroma a pgvector (backend seleccionable)
 - [x] Structured outputs con Pydantic
+- [x] Agente de conciliación de devoluciones (tool use, Fase 2 del roadmap)
+- [x] Guardrail en código para el umbral de 150€ (doble capa: agente + verificación)
+- [ ] Segunda herramienta para el agente (ej. consultar historial del cliente)
 - [ ] Extender eval.py con preguntas sin cobertura, para medir la tasa de
       reconocimiento honesto de falta de información (has_sufficient_context)
 - [ ] Logging estructurado por query (coste, latencia, chunks usados) para
