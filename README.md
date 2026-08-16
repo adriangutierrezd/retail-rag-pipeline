@@ -256,6 +256,17 @@ exclusivamente de él en decisiones con impacto económico directo — un
 guardrail barato en código elimina un riesgo completo, sin restar
 autonomía al agente en el resto de casos.
 
+**Ejemplo de comportamiento dinámico:** ante el mismo caso base (camiseta de
+30€, devuelta a los 5 días, dentro de política), el agente consulta el
+historial del cliente de forma preventiva antes de decidir. Con un cliente
+sin historial de abuso, aprueba directamente. Con un cliente con 4
+devoluciones en 30 días, la misma consulta cambia la decisión final a
+`requiere_autorizacion_humana`, aunque el caso aislado cumplía todas las
+condiciones de plazo e importe. La consulta al historial no depende de
+conocer el resultado de antemano — es una práctica preventiva que el agente
+aplica según la instrucción del sistema; lo que cambia la decisión es cómo
+interpreta el resultado una vez obtenido.
+
 ## Próximos pasos
 
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
