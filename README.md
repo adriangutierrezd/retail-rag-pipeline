@@ -267,6 +267,29 @@ conocer el resultado de antemano — es una práctica preventiva que el agente
 aplica según la instrucción del sistema; lo que cambia la decisión es cómo
 interpreta el resultado una vez obtenido.
 
+**Fiabilidad y no-determinismo:** el agente no reutiliza la misma
+redacción de pregunta entre ejecuciones del mismo caso (comportamiento
+esperado de un LLM sin `temperature` fijada). En una prueba con el
+mismo caso repetido 5 veces, esto llevó en una ocasión a que una
+redacción distinta ("devolución de ropa" en vez de "cambio de opinión")
+recuperara una sección diferente del documento, cambiando la decisión
+final de `aprobar` a `requiere_autorizacion_humana` para un caso que
+debería haberse aprobado directamente.
+
+Se aplicó `temperature=0` en la llamada del agente como mitigación.
+Verificado con 5 repeticiones adicionales del mismo caso: la pregunta
+formulada al RAG fue idéntica las 5 veces (antes variaba en cada
+ejecución), y la decisión final se mantuvo estable. El razonamiento en
+texto libre siguió variando ligeramente incluso con `temperature=0` —
+el ajuste reduce la aleatoriedad de forma sustancial, pero no la
+elimina por completo.
+
+Esta es una limitación real de los sistemas basados en agentes que no
+se ve con RAG básico (una sola llamada, no hay "preguntas intermedias"
+que puedan variar): la fiabilidad de un agente depende también de cómo
+formula sus propios pasos internos, no solo de la calidad del
+razonamiento final.
+
 ## Próximos pasos
 
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
@@ -276,8 +299,13 @@ interpreta el resultado una vez obtenido.
 - [x] Structured outputs con Pydantic
 - [x] Agente de conciliación de devoluciones (tool use, Fase 2 del roadmap)
 - [x] Guardrail en código para el umbral de 150€ (doble capa: agente + verificación)
-- [ ] Segunda herramienta para el agente (ej. consultar historial del cliente)
+- [x] Segunda herramienta para el agente (ej. consultar historial del cliente)
 - [ ] Extender eval.py con preguntas sin cobertura, para medir la tasa de
       reconocimiento honesto de falta de información (has_sufficient_context)
-- [ ] Logging estructurado por query (coste, latencia, chunks usados) para
+- [x] Logging estructurado por query (coste, latencia, chunks usados) para
       observabilidad real, no solo evaluación puntual
+- [x] Detección y mitigación de no-determinismo en el agente
+      (temperature=0)
+- [ ] Ampliar la muestra de repeticiones para cuantificar la tasa de
+      inconsistencia con más confianza estadística (5 repeticiones es
+      evidencia direccional, no concluyente)

@@ -2,6 +2,8 @@ import os
 from anthropic import Anthropic
 from dotenv import load_dotenv
 from src.agent_tools import TOOLS, consultar_politica_devoluciones, consultar_historial_cliente, DecisionDevolucion
+import time
+from src.logging_utils import log_event
 
 load_dotenv()
 
@@ -31,24 +33,27 @@ def ejecutar_tool(name: str, input_data: dict) -> str:
     raise ValueError(f"Herramienta desconocida {name}")
 
 
-def resolver_devolucion(caso: str, importe: float, cliente_id: str) -> DecisionDevolucion:
+def resolver_devolucion(caso: str, importe: float, cliente_id: str, temperature: float = 1.0) -> DecisionDevolucion:
     """
     Bucle del agente: Claude decide qué herramientas llamar, las ejecutamos,
     le devolvemos el resultado hasta que emite la decisión final.
     Aplica una verificación adicional en código sobre el umbral de 150€,
     independiente del razonamiento del agente (guardrail de seguridad).
     """
+    start = time.time()
+    tool_calls = []
     messages = [{
         "role": "user",
         "content": f"{caso}\n\nImporte del producto: {importe}€\nCliente: {cliente_id}"
     }]
-    
+
     while True:
         response = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
             system=SYSTEM_PROMPT,
             tools=TOOLS,
+            temperature=temperature,
             messages=messages
         )
         messages.append({"role": "assistant", "content": response.content})
@@ -59,6 +64,7 @@ def resolver_devolucion(caso: str, importe: float, cliente_id: str) -> DecisionD
             if block.type != "tool_use":
                 continue
 
+            tool_calls.append({"name": block.name, "input": block.input})
             print(f"[agente] llamando a {block.name}({block.input})")
 
             if block.name == "enviar_decision":
@@ -77,7 +83,17 @@ def resolver_devolucion(caso: str, importe: float, cliente_id: str) -> DecisionD
                 })
 
         if decision_final:
-            return aplicar_guardrail_importe(decision_final, importe)
+            decision_final = aplicar_guardrail_importe(decision_final, importe)
+            log_event("agent_decision", {
+                "caso": caso,
+                "importe": importe,
+                "cliente_id": cliente_id,
+                "tool_calls": tool_calls,
+                "decision": decision_final.decision,
+                "requiere_revision": decision_final.requiere_revision,
+                "latencia_segundos": round(time.time() - start, 2),
+            })
+            return decision_final
 
         messages.append({"role": "user", "content": tool_results})
 

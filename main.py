@@ -2,10 +2,11 @@ import os
 from src.loader import load_and_chunk, load_document, list_documents
 from src.context import contextualize_chunks
 from src.embeddings import generate_embeddings
-from src.store import get_collection
 from src.retrieval import retrieve
 from src.generation import generate_response
 from src.vector_store import store_chunks
+import time
+from src.logging_utils import log_event
 
 
 def index_documents(data_dir: str = "data") -> None:
@@ -31,13 +32,22 @@ def index_documents(data_dir: str = "data") -> None:
 
 
 def ask(query: str) -> str:
+    start = time.time()
     resultados = retrieve(query, variant="baseline")
     chunks_texto = [texto for _id, texto in resultados]
     respuesta = generate_response(query, chunks_texto)
+    latencia = round(time.time() - start, 2)
+
+    log_event("rag_query", {
+        "query": query,
+        "chunks_recuperados": [id_ for id_, _ in resultados],
+        "has_sufficient_context": respuesta.has_sufficient_context,
+        "latencia_segundos": latencia,
+    })
+
     if not respuesta.has_sufficient_context:
         return f"{respuesta.answer}\n\n(Información no disponible: {respuesta.missing_info})"
     return respuesta.answer
-
 
 def index_baseline(data_dir: str = "data") -> None:
     """Indexa sin contexto (variant='baseline'), en el backend activo."""
