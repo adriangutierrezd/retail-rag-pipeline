@@ -32,14 +32,14 @@ def rank_of_expected(ids_recuperados: list[str], ids_esperados: list[str]) -> in
     return None
 
 
-def evaluate(collection_name: str, n_results: int = 10) -> None:
-    print(f"\n=== {collection_name} ===\n")
+def evaluate(variant: str, n_results: int = 10) -> None:
+    print(f"\n=== {variant} ===\n")
     ranks = []
     pass_at_1 = 0
     pass_at_3 = 0
 
     for pregunta, ids_esperados in EVAL_SET:
-        resultados = retrieve(pregunta, n_results=n_results, collection_name=collection_name)
+        resultados = retrieve(pregunta, n_results=n_results, variant=variant)
         ids_recuperados = [id_ for id_, _texto in resultados]
 
         rank = rank_of_expected(ids_recuperados, ids_esperados)
