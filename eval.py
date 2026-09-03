@@ -61,5 +61,5 @@ def evaluate(variant: str, n_results: int = 10) -> None:
 
 
 if __name__ == "__main__":
-    evaluate("retail_docs_baseline")
-    evaluate("retail_docs_baseline")
+    evaluate("baseline")
+    evaluate("contextual")

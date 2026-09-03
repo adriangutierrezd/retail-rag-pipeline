@@ -11,7 +11,7 @@ client = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 def retrieve(
     query: str,
     n_results: int = 5,
-    variant: str = "retail_docs_baseline"
+    variant: str = "baseline"
 ) -> list[tuple[str, str]]:
     """
     Vectoriza la pregunta y recupera los chunks más relevantes de la
