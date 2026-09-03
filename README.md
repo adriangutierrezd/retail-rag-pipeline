@@ -290,6 +290,26 @@ que puedan variar): la fiabilidad de un agente depende también de cómo
 formula sus propios pasos internos, no solo de la calidad del
 razonamiento final.
 
+## Zona gris: reconocimiento de falta de información
+
+Preguntas fuera de dominio (ej. "¿qué coche recomendáis?"): 5/5 (100%)
+reconocidas correctamente como sin cobertura — el sistema nunca alucina
+ante temas completamente ajenos a los documentos.
+
+Preguntas de zona gris (tema relevante, dato específico no cubierto):
+3/5 marcadas como "sin contexto suficiente" en la métrica automática, pero
+tras revisión manual, 1 de esas 2 "fallidas" era en realidad una respuesta
+correcta por inferencia lógica simple (comparar un plazo dado contra el
+documentado). El fallo genuino real es 1/5: ante un caso límite explícito
+(descuento del 100% en liquidación), el sistema respondió con confianza
+citando una política relacionada, sin marcar la incertidumbre que ese
+caso extremo merecía.
+
+**Lección:** `has_sufficient_context` mide bien los extremos (fuera de
+dominio vs. dato explícito), pero la métrica automática no distingue
+"inferencia válida" de "alucinación real" — requiere revisión manual en
+casos límite, no basta con contar el booleano sin más.
+
 ## Próximos pasos
 
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
@@ -300,7 +320,7 @@ razonamiento final.
 - [x] Agente de conciliación de devoluciones (tool use, Fase 2 del roadmap)
 - [x] Guardrail en código para el umbral de 150€ (doble capa: agente + verificación)
 - [x] Segunda herramienta para el agente (ej. consultar historial del cliente)
-- [ ] Extender eval.py con preguntas sin cobertura, para medir la tasa de
+- [x] Extender eval.py con preguntas sin cobertura, para medir la tasa de
       reconocimiento honesto de falta de información (has_sufficient_context)
 - [x] Logging estructurado por query (coste, latencia, chunks usados) para
       observabilidad real, no solo evaluación puntual

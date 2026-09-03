@@ -59,7 +59,52 @@ def evaluate(variant: str, n_results: int = 10) -> None:
     print(f"Pass@3 = {pass_at_3}/{len(EVAL_SET)} = {pass_at_3/len(EVAL_SET):.0%}")
     print(f"Posición media del chunk correcto: {avg_rank:.2f}")
 
+from src.generation import generate_response
+
+PREGUNTAS_SIN_COBERTURA = [
+    "¿Cuál es la política de vacaciones de los empleados?",
+    "¿Qué coche me recomendáis para repartos?",
+    "¿Cómo se calcula el salario de un encargado de tienda?",
+    "¿Cuál es el horario de apertura de las tiendas los domingos?",
+    "¿Qué marcas de ropa vende la tienda?",
+]
+
+PREGUNTAS_ZONA_GRIS = [
+    "¿Puedo devolver un producto que compré hace 45 días porque no me convence?",
+    "¿Qué penalización tengo si cancelo un pedido a un proveedor nacional ya confirmado?",
+    "¿Qué hago si el lector RFID de la tienda deja de funcionar durante el inventario cíclico?",
+    "¿Se pueden gestionar quejas de clientes a través de redes sociales?",
+    "¿Se puede aplicar un descuento del 100% en una liquidación de stock obsoleto?",
+]
+
+
+def evaluate_no_coverage(preguntas: list[str], label: str, variant: str = "baseline", n_results: int = 5) -> None:
+    """
+    Mide si el sistema reconoce honestamente cuándo NO tiene información
+    suficiente para responder con seguridad.
+    """
+    print(f"\n=== {label} ({variant}) ===\n")
+    aciertos = 0
+
+    for pregunta in preguntas:
+        resultados = retrieve(pregunta, n_results=n_results, variant=variant)
+        chunks_texto = [texto for _id, texto in resultados]
+        respuesta = generate_response(pregunta, chunks_texto)
+
+        acierto = not respuesta.has_sufficient_context
+        aciertos += acierto
+
+        estado = "✅" if acierto else "❌ (alucinó o forzó respuesta)"
+        print(f"{estado} {pregunta}")
+        print(f"   has_sufficient_context: {respuesta.has_sufficient_context}")
+        print(f"   respuesta: {respuesta.answer[:150]}...")
+        print()
+
+    tasa = aciertos / len(preguntas)
+    print(f"Tasa de reconocimiento honesto = {aciertos}/{len(preguntas)} = {tasa:.0%}")
 
 if __name__ == "__main__":
     evaluate("baseline")
     evaluate("contextual")
+    evaluate_no_coverage(PREGUNTAS_SIN_COBERTURA, "Preguntas sin cobertura")
+    evaluate_no_coverage(PREGUNTAS_ZONA_GRIS, "Preguntas zona gris")
