@@ -7,7 +7,7 @@ from src.generation import generate_response
 from src.vector_store import store_chunks
 import time
 from src.logging_utils import log_event
-
+import uuid
 
 def index_documents(data_dir: str = "data") -> None:
     """Indexa con contexto (variant='contextual'), en el backend activo."""
@@ -32,10 +32,11 @@ def index_documents(data_dir: str = "data") -> None:
 
 
 def ask(query: str) -> str:
+    request_id = str(uuid.uuid4())
     start = time.time()
-    resultados = retrieve(query, variant="baseline")
+    resultados = retrieve(query, variant="baseline", request_id=request_id)
     chunks_texto = [texto for _id, texto in resultados]
-    respuesta = generate_response(query, chunks_texto)
+    respuesta = generate_response(query, chunks_texto, request_id=request_id)
     latencia = round(time.time() - start, 2)
 
     log_event("rag_query", {

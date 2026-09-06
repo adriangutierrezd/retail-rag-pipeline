@@ -310,6 +310,55 @@ dominio vs. dato explícito), pero la métrica automática no distingue
 "inferencia válida" de "alucinación real" — requiere revisión manual en
 casos límite, no basta con contar el booleano sin más.
 
+## Coste en producción
+
+Cada llamada a un modelo de pago (Claude o Voyage) queda registrada en
+`logs/events.jsonl` con su coste real en USD, calculado a partir de las
+tarifas oficiales por millón de tokens (`src/pricing.py`).
+
+**Puntos instrumentados, los cuatro sitios reales donde el pipeline
+gasta dinero:**
+
+- `generate_response()` — Sonnet, coste de generar cada respuesta
+- `situate_context()` — Haiku, coste de contextualizar cada chunk
+  (incluye desglose de `cache_creation_input_tokens` vs
+  `cache_read_input_tokens`, para poder verificar si el prompt caching
+  se está activando)
+- `generate_embeddings()` — Voyage, coste de vectorizar documentos en
+  el indexado
+- `retrieve()` — Voyage, coste de vectorizar cada pregunta del usuario
+
+**Trazabilidad por petición (`request_id`):** cada llamada a `ask()`
+genera un identificador único que viaja a través de `retrieve()` y
+`generate_response()`, de forma que todas las líneas de log de una
+misma consulta del usuario quedan vinculadas entre sí. Esto permite
+responder no solo "¿cuánto ha costado el sistema en total?" sino
+"¿cuánto costó esta consulta concreta?" — por ejemplo, una consulta de
+prueba real costó **$0.008364** en total (embedding de la pregunta +
+generación de la respuesta).
+
+**`analyze_costs.py`** ofrece dos funciones separadas de cálculo y
+presentación:
+
+- `resumen_costes()` — devuelve el coste acumulado agrupado por
+  propósito y por modelo, como estructura de datos reutilizable
+- `imprimir_resumen_costes()` — capa de presentación en consola sobre
+  la anterior
+- `coste_de_peticion(request_id)` — coste exacto de una petición
+  individual, filtrando el log por su identificador
+
+```bash
+uv run python analyze_costs.py
+```
+
+**Nota sobre las tarifas:** los precios en `pricing.py` están
+hardcodeados con fecha de verificación anotada (no se consultan en
+tiempo real). Es una decisión consciente para el alcance de este
+proyecto — un sistema en producción real necesitaría o bien un proceso
+de revisión periódica de estas tarifas, o una fuente de precios
+externa, para no arrastrar tarifas desactualizadas en silencio si el
+proveedor cambia sus precios.
+
 ## Próximos pasos
 
 - [x] Contextual retrieval (implementado y evaluado — ver sección Evaluación)
@@ -329,3 +378,5 @@ casos límite, no basta con contar el booleano sin más.
 - [ ] Ampliar la muestra de repeticiones para cuantificar la tasa de
       inconsistencia con más confianza estadística (5 repeticiones es
       evidencia direccional, no concluyente)
+- [x] Coste en producción: instrumentación de las 4 llamadas de pago,
+      trazabilidad por request_id, script de análisis agregado
