@@ -3,8 +3,10 @@ from pydantic import BaseModel
 from src.retrieval import retrieve
 from src.generation import generate_response
 
+TipoDecision = Literal["aprobar", "rechazar", "requiere_autorizacion_humana"]
+
 class DecisionDevolucion(BaseModel):
-    decision: Literal["aprobar", "rechazar", "requiere_autorizacion_humana"]
+    decision: TipoDecision
     razonamiento: str
     politica_aplicada: str
     requiere_revision: bool

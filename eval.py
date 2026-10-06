@@ -1,4 +1,7 @@
 from src.retrieval import retrieve
+from src.agent import resolver_devolucion
+from dataclasses import dataclass
+from src.agent_tools import DecisionDevolucion, TipoDecision
 
 EVAL_SET = [
     ("¿Cuántos días tengo para devolver un producto si simplemente no me convence?",
@@ -103,8 +106,57 @@ def evaluate_no_coverage(preguntas: list[str], label: str, variant: str = "basel
     tasa = aciertos / len(preguntas)
     print(f"Tasa de reconocimiento honesto = {aciertos}/{len(preguntas)} = {tasa:.0%}")
 
+@dataclass
+class TestCase:
+    caso: str
+    importe: float
+    client_id: int
+    temperature: float
+    expected: TipoDecision
+
+AGENT_TEST_CASES = [
+    TestCase(
+        caso="Cliente quiere devolver una camiseta de 30€ comprada hace 5 días.",
+        importe=30.0,
+        client_id=0,
+        temperature=1.0,
+        expected="aprobar"
+    ),
+    TestCase(
+        caso="Cliente quiere devolver una camiseta de 200€, comprada hace 10 minutos. Se confundió de modelo",
+        importe=300.0,
+        client_id=0,
+        temperature=1.0,
+        expected="requiere_autorizacion_humana"
+    )
+]
+
+
+def evaluate_agent(cases: list[TestCase], label: str):
+    """
+    Mide si las decisiones que toma el agente frente a los casos presentados
+    son las esperadas en cada situación.
+    """
+    aciertos = 0
+    errores = 0
+    print(f"\n=== {label} ===\n")
+
+    for case in cases:
+        response = resolver_devolucion(case.caso, case.importe, case.client_id, case.temperature)
+        if response.decision == case.expected:
+            aciertos += 1
+            print(f"La decisión del agente es correcta: ✅")
+        else:
+            errores += 1
+            print(f"La decisión del agente es erronea: ❌")
+
+    tasa_aciertos = aciertos / len(cases)
+    print(f"Tasa de decisiones correctas = {aciertos}/{len(cases)} = {tasa_aciertos:.0%}")
+
+
 if __name__ == "__main__":
     evaluate("baseline")
     evaluate("contextual")
     evaluate_no_coverage(PREGUNTAS_SIN_COBERTURA, "Preguntas sin cobertura")
     evaluate_no_coverage(PREGUNTAS_ZONA_GRIS, "Preguntas zona gris")
+    evaluate_agent(AGENT_TEST_CASES, "Pruebas agente")
