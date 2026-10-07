@@ -110,7 +110,7 @@ def evaluate_no_coverage(preguntas: list[str], label: str, variant: str = "basel
 class TestCase:
     caso: str
     importe: float
-    client_id: int
+    client_id: str
     temperature: float
     expected: TipoDecision
 
@@ -118,16 +118,37 @@ AGENT_TEST_CASES = [
     TestCase(
         caso="Cliente quiere devolver una camiseta de 30€ comprada hace 5 días.",
         importe=30.0,
-        client_id=0,
+        client_id="cliente_001",
+        temperature=1.0,
+        expected="requiere_autorizacion_humana"
+    ),
+    TestCase(
+        caso="Cliente quiere devolver una camiseta de 150€, comprada hace 10 minutos. Se confundió de modelo",
+        importe=150.0,
+        client_id="cliente_001",
+        temperature=1.0,
+        expected="requiere_autorizacion_humana"
+    ),
+    TestCase(
+        caso="Cliente quiere devolver una camiseta de 140€, comprada hace 3 días.",
+        importe=140.0,
+        client_id="cliente_001",
+        temperature=1.0,
+        expected="requiere_autorizacion_humana"
+    ),
+    TestCase(
+        caso="Cliente quiere devolver una camiseta de 140€, comprada hace 3 días.",
+        importe=140.0,
+        client_id="cliente_002",
         temperature=1.0,
         expected="aprobar"
     ),
     TestCase(
-        caso="Cliente quiere devolver una camiseta de 200€, comprada hace 10 minutos. Se confundió de modelo",
-        importe=300.0,
-        client_id=0,
+        caso="Cliente quiere devolver una camiseta de 20€, comprada hace 34 días.",
+        importe=20.0,
+        client_id="cliente_003",
         temperature=1.0,
-        expected="requiere_autorizacion_humana"
+        expected="rechazar"
     )
 ]
 
@@ -138,7 +159,6 @@ def evaluate_agent(cases: list[TestCase], label: str):
     son las esperadas en cada situación.
     """
     aciertos = 0
-    errores = 0
     print(f"\n=== {label} ===\n")
 
     for case in cases:
@@ -147,8 +167,7 @@ def evaluate_agent(cases: list[TestCase], label: str):
             aciertos += 1
             print(f"La decisión del agente es correcta: ✅")
         else:
-            errores += 1
-            print(f"La decisión del agente es erronea: ❌")
+            print(f"La decisión del agente es erronea: ❌. Política aplicada: {response.politica_aplicada}")
 
     tasa_aciertos = aciertos / len(cases)
     print(f"Tasa de decisiones correctas = {aciertos}/{len(cases)} = {tasa_aciertos:.0%}")
